@@ -27,7 +27,6 @@ public class Main extends ApplicationAdapter {
     private boolean logicDone;
     private int generation;
     private boolean paused;
-
     @Override
     public void create() {
         mapDimensions = new Vector2(250, 250);
