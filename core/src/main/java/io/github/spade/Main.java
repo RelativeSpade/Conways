@@ -13,7 +13,9 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 public class Main extends ApplicationAdapter {
     private Pixmap map;
@@ -22,15 +24,19 @@ public class Main extends ApplicationAdapter {
     private ScreenViewport viewport;
     private Stage stage;
     private Vector2 center;
-    private Boolean started = false;
-    private HashMap<Integer,Vector2> LivingCells;
+    private Boolean started;
+    private ArrayList<Vector2> LivingCells;
+    private Vector2 mapDimensions;
 
     @Override
     public void create() {
+        mapDimensions = new Vector2(500, 500);
         viewport = new ScreenViewport();
         stage = new Stage(viewport);
+        LivingCells = new ArrayList<>();
+        started = false;
 
-        map = new Pixmap(1000, 1000, Pixmap.Format.RGBA8888);
+        map = new Pixmap((int) mapDimensions.x, (int) mapDimensions.y, Pixmap.Format.RGBA8888);
         map.setColor(1, 1, 1, 1);
         map.fill();
 
@@ -61,17 +67,25 @@ public class Main extends ApplicationAdapter {
     }
 
     private void logic() {
-        // Update the pixmap (if needed)
         if (!started){
             started = true;
-
-
+            for(int i = 0 ; i < (((int) mapDimensions.x * (int) mapDimensions.y)*.1) ; i++){
+                Random rand = new Random();
+                int x = rand.nextInt(map.getWidth());
+                int y = rand.nextInt(map.getWidth());
+                LivingCells.add(i,new Vector2(x, y));
+            }
         }
 
-        for (int y = 0; y < 1000; y++) {
-            for (int x = 0; x < 1000; x++) {
-                map.drawPixel(x, y, Color.rgba8888(1.0f, 1.0f, 0.0f, 1));
+
+        for (int y = 0; y < mapDimensions.x; y++) {
+            for (int x = 0; x < mapDimensions.y; x++) {
+                map.drawPixel(x, y, Color.rgba8888(1.0f, 0.0f, 1.0f, 1));
             }
+        }
+
+        for (Vector2 livingCell : LivingCells) {
+            map.drawPixel((int) livingCell.x, (int) livingCell.y, Color.rgba8888(1.0f, 1.0f, 1.0f, 1));
         }
 
         // Update the texture from the pixmap
