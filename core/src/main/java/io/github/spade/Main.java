@@ -9,11 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
@@ -29,15 +25,18 @@ public class Main extends ApplicationAdapter {
     private Vector2 mapDimensions;
     private OrthographicCamera camera;
     private boolean logicDone;
+    private int generation;
+    private boolean paused;
 
     @Override
     public void create() {
-        mapDimensions = new Vector2(100, 100);
+        mapDimensions = new Vector2(250, 250);
         viewport = new ScreenViewport();
         camera = new OrthographicCamera();
         stage = new Stage(viewport);
         LivingCells = new ArrayList<>();
         started = false;
+        paused = false;
         logicDone = false;
 
         map = new Pixmap((int) mapDimensions.x, (int) mapDimensions.y, Pixmap.Format.RGBA8888);
@@ -73,6 +72,10 @@ public class Main extends ApplicationAdapter {
     private void input() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.app.exit();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            paused = !paused;
         }
 
         // Create a new InputMultiplexer to handle both stage input and custom input
@@ -137,7 +140,7 @@ public class Main extends ApplicationAdapter {
         // Adjust the position by centering the camera
         Vector2 trueMousePos = new Vector2(Math.round(worldCoordinates.x - center.x), Math.round(worldCoordinates.y - center.y));
 
-        trueMousePos.y = map.getHeight() - trueMousePos.y; // Invert the y-axis because LibGDX draws starting from top left and we loop from bottom left.
+        trueMousePos.y = map.getHeight() - trueMousePos.y; // Invert the y-axis because LibGDX draws starting from top left, and we loop from bottom left.
 
 
         for (int y = 0; y < mapDimensions.x; y++) {
@@ -146,10 +149,10 @@ public class Main extends ApplicationAdapter {
             }
         }
 
-        if (logicDone) {
-            System.out.println("Pre Cells: " + LivingCells.size());
+        if (logicDone && !paused) {
+            generation++;
+            System.out.println("Generation: " + generation);
             new Thread(this::newGeneration).start();
-            System.out.println("Post Cells: " + LivingCells.size());
         }
 
         for (Vector2 livingCell : LivingCells) {
