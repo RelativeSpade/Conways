@@ -1,14 +1,10 @@
 package io.github.spade;
 
-import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.*;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -27,11 +23,13 @@ public class Main extends ApplicationAdapter {
     private Boolean started;
     private ArrayList<Vector2> LivingCells;
     private Vector2 mapDimensions;
+    private OrthographicCamera camera;
 
     @Override
     public void create() {
         mapDimensions = new Vector2(500, 500);
         viewport = new ScreenViewport();
+        camera = new OrthographicCamera();
         stage = new Stage(viewport);
         LivingCells = new ArrayList<>();
         started = false;
@@ -58,12 +56,59 @@ public class Main extends ApplicationAdapter {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
         center.set((float) Gdx.graphics.getWidth() / 2 - (float) map.getWidth() / 2, (float) Gdx.graphics.getHeight() / 2 - (float) map.getHeight() / 2);
+
+        camera.setToOrtho(false, width, height);
+        camera.update();
+
+        camera.position.set(width / 2f, height / 2f, 0);
     }
+
 
     private void input() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.app.exit();
         }
+
+        // Create a new InputMultiplexer to handle both stage input and custom input
+        InputMultiplexer multiplexer = new InputMultiplexer();
+
+        // Add the stage as an input processor
+        multiplexer.addProcessor(stage);
+
+        // Add your custom input adapter for map dragging and zooming
+        multiplexer.addProcessor(new InputAdapter() {
+            @Override
+            public boolean scrolled(float amountX, float amountY) {
+                if (amountY > 0) {
+                    if (camera.zoom == 0.025f) {
+                        camera.zoom = 0.05f;
+                    } else {
+                        camera.zoom += 0.1f;
+                    }
+                } else if (amountY < 0) {
+                    if (camera.zoom - 0.1f > 0.1f) {
+                        camera.zoom -= 0.1f;
+                    } else {
+                        if (camera.zoom == 0.05f) {
+                            camera.zoom = 0.025f;
+                        } else if (camera.zoom != 0.025f) {
+                            camera.zoom = 0.05f;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public boolean touchDragged(int screenX, int screenY, int pointer) {
+                camera.position.x -= (Gdx.input.getDeltaX() * camera.zoom);
+                camera.position.y += (Gdx.input.getDeltaY() * camera.zoom);
+                return true;
+            }
+        });
+
+        // Set the multiplexer as the input processor
+        Gdx.input.setInputProcessor(multiplexer);
     }
 
     private void logic() {
@@ -76,6 +121,16 @@ public class Main extends ApplicationAdapter {
                 LivingCells.add(i,new Vector2(x, y));
             }
         }
+
+        Vector2 mousePos = new Vector2(Gdx.input.getX(), Gdx.input.getY());
+
+        // Convert screen coordinates to world coordinates based on the camera's position and zoom
+        Vector3 worldCoordinates = camera.unproject(new Vector3(mousePos.x, mousePos.y, 0));
+
+        // Adjust the position by centering the camera
+        Vector2 trueMousePos = new Vector2(Math.round(worldCoordinates.x - center.x), Math.round(worldCoordinates.y - center.y));
+
+        trueMousePos.y = map.getHeight() - trueMousePos.y; // Invert the y-axis because LibGDX draws starting from top left and we loop from bottom left.
 
 
         for (int y = 0; y < mapDimensions.x; y++) {
@@ -94,8 +149,9 @@ public class Main extends ApplicationAdapter {
 
     private void draw() {
         ScreenUtils.clear(Color.BLACK);
+        camera.update();
 
-        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
         batch.draw(texture, center.x, center.y);
