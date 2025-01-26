@@ -9,8 +9,12 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
 
 public class Main extends ApplicationAdapter {
@@ -24,15 +28,17 @@ public class Main extends ApplicationAdapter {
     private ArrayList<Vector2> LivingCells;
     private Vector2 mapDimensions;
     private OrthographicCamera camera;
+    private boolean logicDone;
 
     @Override
     public void create() {
-        mapDimensions = new Vector2(500, 500);
+        mapDimensions = new Vector2(100, 100);
         viewport = new ScreenViewport();
         camera = new OrthographicCamera();
         stage = new Stage(viewport);
         LivingCells = new ArrayList<>();
         started = false;
+        logicDone = false;
 
         map = new Pixmap((int) mapDimensions.x, (int) mapDimensions.y, Pixmap.Format.RGBA8888);
         map.setColor(1, 1, 1, 1);
@@ -119,6 +125,7 @@ public class Main extends ApplicationAdapter {
                 int x = rand.nextInt(map.getWidth());
                 int y = rand.nextInt(map.getWidth());
                 LivingCells.add(i,new Vector2(x, y));
+                logicDone = true;
             }
         }
 
@@ -135,8 +142,14 @@ public class Main extends ApplicationAdapter {
 
         for (int y = 0; y < mapDimensions.x; y++) {
             for (int x = 0; x < mapDimensions.y; x++) {
-                map.drawPixel(x, y, Color.rgba8888(1.0f, 0.0f, 1.0f, 1));
+                map.drawPixel(x, y, Color.rgba8888(0.0f, 0.0f, 0.0f, 1));
             }
+        }
+
+        if (logicDone) {
+            System.out.println("Pre Cells: " + LivingCells.size());
+            new Thread(this::newGeneration).start();
+            System.out.println("Post Cells: " + LivingCells.size());
         }
 
         for (Vector2 livingCell : LivingCells) {
@@ -145,6 +158,55 @@ public class Main extends ApplicationAdapter {
 
         // Update the texture from the pixmap
         texture.draw(map, 0, 0);
+    }
+
+    private void newGeneration() {
+        logicDone = false;
+        HashSet<Vector2> cellsToCheck = new HashSet<>();
+        HashSet<Vector2> newLivingCells = new HashSet<>();
+
+        // Collect all cells and their neighbors to evaluate
+        for (Vector2 livingCell : LivingCells) {
+            cellsToCheck.add(new Vector2(livingCell));
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (dx != 0 || dy != 0) { // Include all neighbors
+                        cellsToCheck.add(new Vector2(livingCell.x + dx, livingCell.y + dy));
+                    }
+                }
+            }
+        }
+
+        for (Vector2 cell : cellsToCheck) {
+            int livingNeighbors = 0;
+
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (!(dx == 0 && dy == 0)) { // Skip the cell itself
+                        Vector2 neighbor = new Vector2(cell.x + dx, cell.y + dy);
+                        if (LivingCells.contains(neighbor)) {
+                            livingNeighbors++;
+                        }
+                    }
+                }
+            }
+
+            if (LivingCells.contains(cell)) {
+                // Rule 2: Any live cell with 2 or 3 live neighbors survives
+                if (livingNeighbors == 2 || livingNeighbors == 3) {
+                    newLivingCells.add(new Vector2(cell));
+                }
+            } else {
+                // Rule 4: Any dead cell with exactly 3 live neighbors becomes a live cell
+                if (livingNeighbors == 3) {
+                    newLivingCells.add(new Vector2(cell));
+                }
+            }
+        }
+
+        LivingCells.clear();
+        LivingCells.addAll(newLivingCells);
+        logicDone = true;
     }
 
     private void draw() {
