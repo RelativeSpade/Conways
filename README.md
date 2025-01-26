@@ -11,3 +11,8 @@ The results of this are staggering; you will see beautiful shapes and civilizati
 will exist for eternity without outside interference.
 The most common shapes are below, but there are hundreds of unique shapes that are not shown.
 ![image](https://github.com/user-attachments/assets/d4fad7a6-7188-43ad-af63-4197fa6ee72c)
+
+# Credits
+Thank you to what-to-code.com for recommending this project,
+en.wikipedia.org/wiki/Conway%27s_Game_of_Life for providing the resources necessary to complete this project,
+and John Horton Conway for discovering the original concept.
